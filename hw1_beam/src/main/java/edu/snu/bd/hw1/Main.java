@@ -204,7 +204,12 @@ public class Main {
                 // expect output:
                 //  PCOLLECTION: [3, row, 3.0]
                 //  PCOLLECTION: [2, row, 2.0]
-                System.out.println("PCOLLECTION: " + input.getValues());
+
+                System.out.println("");
+                System.out.println("+----------------------------------------------------");
+                System.out.println("| PCOLLECTION: " + input.getValues());
+                System.out.println("+----------------------------------------------------");
+
                 return null;
               }
             }));
@@ -223,7 +228,9 @@ public class Main {
               public Void apply(Row input) {
                 // expect output:
                 //  CASE1_RESULT: [row, 5.0]
+                System.out.println("+-------------------------------");
                 System.out.println("CASE1_RESULT: " + input.getValues());
+                System.out.println("+-------------------------------");
                 return null;
               }
             }));
@@ -260,16 +267,18 @@ public class Main {
   public static void main(String[] args) throws Exception {
 
     System.out.println("===================================================");
-    System.out.println("\tHW01 -  Beam on Spark / Nemo");
+    System.out.println("HW01 -  Beam on Spark / Nemo");
     System.out.println("\tJiho Choi (jihochoi@snu.ac.kr)");
-    System.out.println("===================================================");
+    System.out.println("---------------------------------------------------");
+    System.out.println("\tSTART");
+    System.out.println("---------------------------------------------------");
     System.out.println("");
 
     runWordCount(args);
     runSQL(args);
 
-    System.out.println("===================================================");
-    System.out.println("");
+    System.out.println("---------------------------------------------------");
+    System.out.println("\tEND");
     System.out.println("===================================================");
 
   }

@@ -8,7 +8,6 @@ mvn clean install -Pnemo-runner
 #run
 
 : '
-
 # Original
 java -cp `pwd`/nemo-shaded.jar:`yarn classpath`:`pwd`/target/bd_hw-1.0-SNAPSHOT.jar \
 org.apache.nemo.client.JobLauncher \
