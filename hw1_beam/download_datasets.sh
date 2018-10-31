@@ -27,6 +27,14 @@ wget https://jihochoi.github.io/datasets/wc2018_players.csv
 rm -r ./data
 mkdir ./data
 
+echo ""
+echo "Locate Files"
 mv ./fifa_ranking.csv ./data/fifa_ranking.csv
 mv ./wc2018_players.csv ./data/wc2018_players.csv
+ls ./data
+
+echo ""
+echo "Remove Headers"
+tail -n +2 ./data/fifa_ranking.csv > ./data/ranking.csv
+tail -n +2 ./data/wc2018_players.csv > ./data/players.csv
 ls ./data

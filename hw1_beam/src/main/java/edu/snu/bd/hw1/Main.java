@@ -31,6 +31,22 @@ import org.apache.beam.sdk.schemas.Schema;
 import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.values.*;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.FileNotFoundException;
+
+import java.util.*;
+
+import org.apache.commons.csv.CSVFormat;
+import org.apache.beam.sdk.extensions.sql.meta.provider.text.TextTableProvider;
+import org.apache.beam.sdk.coders.*;
+import org.apache.beam.sdk.transforms.*;
+import org.apache.beam.sdk.coders.*;
+import org.apache.beam.sdk.schemas.*;
+import org.apache.beam.sdk.values.*;
+
+
 /**
  * An example that counts words in Shakespeare and includes Beam best practices.
  *
@@ -76,6 +92,7 @@ import org.apache.beam.sdk.values.*;
  * Shakespeare. You can override it and choose your own input with {@code --inputFile}.
  */
 public class Main {
+
   public static final String TOKENIZER_PATTERN = "[^\\p{L}]+";
 
   /**
@@ -86,7 +103,7 @@ public class Main {
   static class ExtractWordsFn extends DoFn<String, String> {
     private final Counter emptyLines = Metrics.counter(ExtractWordsFn.class, "emptyLines");
     private final Distribution lineLenDist =
-        Metrics.distribution(ExtractWordsFn.class, "lineLenDistro");
+            Metrics.distribution(ExtractWordsFn.class, "lineLenDistro");
 
     @ProcessElement
     public void processElement(@Element String element, OutputReceiver<String> receiver) {
@@ -123,8 +140,7 @@ public class Main {
    * Count) as a reusable PTransform subclass. Using composite transforms allows for easy reuse,
    * modular testing, and an improved monitoring experience.
    */
-  public static class CountWords
-      extends PTransform<PCollection<String>, PCollection<KV<String, Long>>> {
+  public static class CountWords extends PTransform<PCollection<String>, PCollection<KV<String, Long>>> {
     @Override
     public PCollection<KV<String, Long>> expand(PCollection<String> lines) {
 
@@ -138,6 +154,7 @@ public class Main {
     }
   }
 
+/*
   public interface PipelineOptions extends org.apache.beam.sdk.options.PipelineOptions {
     @Description("Path of the file to read from")
     @Required
@@ -151,12 +168,195 @@ public class Main {
 
     void setOutput(String value);
   }
+*/
 
+
+  public interface PipelineOptions extends org.apache.beam.sdk.options.PipelineOptions {
+
+    @Description("Path of the ranking file to read from")
+    @Required
+    String getInputFile_ranking();
+
+    void setInputFile_ranking(String value);
+
+    @Description("Path of the players file to read from")
+    @Required
+    String getInputFile_players();
+
+    void setInputFile_players(String value);
+
+    @Description("Path of the file to write to")
+    @Required
+    String getOutput();
+
+    void setOutput(String value);
+  }
+
+  /*
   static void applyWordCountLogic(final Pipeline pipeline, final String input, final String output) {
     pipeline.apply("ReadLines", TextIO.read().from(input))
-        .apply(new CountWords())
-        .apply(MapElements.via(new FormatAsTextFn()))
-        .apply("WriteCounts", TextIO.write().to(output));
+            .apply(new CountWords())
+            .apply(MapElements.via(new FormatAsTextFn()))
+            .apply("WriteCounts", TextIO.write().to(output));
+  }
+  */
+
+
+
+
+  static void applyWorldCupCalcLogic(final Pipeline pipeline,
+                                     final String input_ranking,
+                                     final String input_players,
+                                     final String output) {
+
+    // TODOs
+
+    System.out.println("DEBUG > apply > begin ================================================================= JIHO");
+    System.out.println("1) " + input_ranking + "\n2) " + input_players);
+
+    // CountWords
+    // pipeline.apply("ReadLines", TextIO.read().from(input_ranking))
+    //         .apply(new CountWords())
+    //         .apply(MapElements.via(new FormatAsTextFn()))
+    //         .apply("WriteCounts", TextIO.write().to(output));
+
+
+    // Load only the required fields from .csv files and create PCollection<Row>
+
+    /*
+    References
+      https://beam.apache.org/documentation/dsls/sql/walkthrough/
+
+    */
+
+    /*
+    // Undistributed in-memory load
+
+    List<Row> rows = new ArrayList<Row>();
+    String line = "";
+    try (BufferedReader br = new BufferedReader(new FileReader(input_ranking))) {
+      line = br.readLine(); // Remove Header
+      while ((line = br.readLine()) != null) {
+        String[] entries = line.split(",");
+        // System.out.println(entries[0] + " " + entries[1] + " " + entries[15]);
+        // row = Row.withSchema(rankingSchema).addValues(entries[0], entries[1], entries[15]).build();
+        rows.add(Row.withSchema(rankingSchema).addValues(Integer.parseInt(entries[0]), entries[1], entries[15]).build());
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      System.out.println("##### Can Not Load Data #####");
+    }
+    */
+
+    // rank,country_full,country_abrv,total_points,previous_points,rank_change,cur_year_avg,cur_year_avg_weighted,last_year_avg,last_year_avg_weighted,two_year_ago_avg,two_year_ago_weighted,three_year_ago_avg,three_year_ago_weighted,confederation,rank_date
+    Schema RANKING_SCHEMA = Schema.builder()
+            .addInt32Field("rank")     // 0
+            .addStringField("country") // 1
+            .addStringField("temp2").addStringField("temp3").addStringField("temp4")
+            .addStringField("temp5").addStringField("temp6").addStringField("temp7")
+            .addStringField("temp8").addStringField("temp9").addStringField("temp10")
+            .addStringField("temp11").addStringField("temp12").addStringField("temp13").addStringField("temp14")
+            .addStringField("rank_date")    // 15
+            .build();
+
+    // Team,#,Pos.,FIFA Popular Name,Birth Date,Shirt Name,Club,Height,Weight
+    Schema PLAYER_SCHEMA = Schema.builder()
+            .addStringField("country") // 0
+            .addStringField("temp1")
+            .addStringField("temp2")
+            .addStringField("temp3")
+            .addStringField("temp4")
+            .addStringField("temp5")
+            .addStringField("temp6")
+            .addStringField("height") // 7
+            .addStringField("weight") // 8
+            .build();
+
+
+    // final ImmutableMap<String, Schema> hSchemas = ImmutableMap.<String, Schema>builder()
+    //         .put("ranking", RANKING_SCHEMA)
+    //         .put("player", PLAYER_SCHEMA)
+    //         .build();
+
+    final CSVFormat csvFormat = CSVFormat.MYSQL
+            .withDelimiter(',')
+            .withNullString("")
+            .withTrailingDelimiter();
+
+    PCollectionTuple tables = PCollectionTuple.empty(pipeline);
+
+    final PCollection<Row> table_ranking = pipeline.apply(TextIO.read().from(input_ranking))
+            .apply("StringToRow", new TextTableProvider.CsvToRow(RANKING_SCHEMA, csvFormat))
+            .setCoder(RANKING_SCHEMA.getRowCoder())
+            .setName("ranking");
+
+    tables = tables.and(new TupleTag<>("ranking"), table_ranking);
+
+    final PCollection<Row> table_player = pipeline.apply(TextIO.read().from(input_players))
+            .apply("StringToRow", new TextTableProvider.CsvToRow(PLAYER_SCHEMA, csvFormat))
+            .setCoder(PLAYER_SCHEMA.getRowCoder())
+            .setName("player");
+
+    tables = tables.and(new TupleTag<>("player"), table_player);
+
+
+    // Load CSV Refernce: https://github.com/apache/incubator-nemo/blob/78e182c98554e4cdea6e63b0a9fed4905e75e2f2/examples/beam/src/main/java/org/apache/nemo/examples/beam/tpch/TpchQueryRunner.java#L75-L78
+
+    // PCollectionTuple tables = PCollectionTuple.empty(pipeline);
+
+    // PCollection<Row> table = GenericSourceSink.read(pipeline, filePattern)
+    //         .apply("StringToRow", new TextTableProvider.CsvToRow(tableSchema.getValue(), csvFormat))
+    //         .setCoder(tableSchema.getValue().getRowCoder())
+    //         .setName(tableSchema.getKey());
+
+    // PCollection<Row> rankingTable = pipeline.apply(TextIO.read().from(input_ranking))
+    //                 .apply("StringToRow", new TextTableProvider.CsvToRow(rankingSchema, csvFormat))
+    //                 .setCoder(rankingSchema.getRowCoder())
+    //                 .setName("ranking");
+    //                 // .setCoder(RowCoder.of(rankingSchema))
+
+    PCollection<Row> outputStream =
+            // tables.apply(SqlTransform.query("select ranking.rank, country, date from PCOLLECTION where date = '2018-06-07'"));
+            // tables.apply(SqlTransform.query("select * from PCOLLECTION"));
+
+
+            // tables.apply(SqlTransform.query("select * from ranking"));
+            tables.apply(SqlTransform.query("select * from player"));
+
+
+            // rankingTable.apply(SqlTransform.query("select * from PCOLLECTION where date = '2018-06-07'"));
+
+            // rankingTable.apply(SqlTransform.query("select ranking.rank, ranking.country, ranking.date from PCOLLECTION"));
+            // rankingTable.apply(SqlTransform.query("select rank, country, date from PCOLLECTION where date = '2018-06-07'"));
+
+    outputStream.apply(
+            "log_result",
+            MapElements.via(
+                    new SimpleFunction<Row, Void>() {
+                      @Override
+                      public Void apply(Row input) {
+                        System.out.println("+----------------------------------------------------");
+                        System.out.println("| PCOLLECTION: " + input.getValues());
+                        System.out.println("+----------------------------------------------------");
+                        return null;
+                      }
+                    }));
+
+
+    // PCollection<Row> rankingTable =
+    //         PBegin.in(pipeline)
+    //                 .apply(Create
+    //                         .of(rows)
+    //                         .withCoder(RowCoder.of(rankingSchema)));
+
+
+    // final PCollection<Row> table_player = GenericSourceSink
+
+    // PCollection<Row> inputTableRanking = p.apply(TextIO.read().from("/my/input/pathb")).apply(...);
+    // PCollection<Row> inputTablePlayers = p.apply(TextIO.read().from("/my/input/patha")).apply(...);
+
+    System.out.println("DEBUG > apply > end =================================================================== JIHO");
   }
 
   /**
@@ -175,7 +375,7 @@ public class Main {
   static void applySQLLogic(final Pipeline p) {
     //define the input row format
     Schema type =
-        Schema.builder().addInt32Field("c1").addStringField("c2").addDoubleField("c3").build();
+            Schema.builder().addInt32Field("c1").addStringField("c2").addDoubleField("c3").build();
 
     Row row1 = Row.withSchema(type).addValues(1, "row", 1.0).build();
     Row row2 = Row.withSchema(type).addValues(2, "row", 2.0).build();
@@ -183,75 +383,76 @@ public class Main {
 
     //create a source PCollection with Create.of();
     PCollection<Row> inputTable =
-        PBegin.in(p)
-            .apply(
-                Create.of(row1, row2, row3)
-                    .withSchema(
-                        type, SerializableFunctions.identity(), SerializableFunctions.identity()))
-        .setCoder(type.getRowCoder());
+            PBegin.in(p)
+                    .apply(
+                            Create.of(row1, row2, row3)
+                                    .withSchema(
+                                            type, SerializableFunctions.identity(), SerializableFunctions.identity()))
+                    .setCoder(type.getRowCoder());
 
     //Case 1. run a simple SQL query over input PCollection with BeamSql.simpleQuery;
     PCollection<Row> outputStream =
-        inputTable.apply(SqlTransform.query("select c1, c2, c3 from PCOLLECTION where c1 > 1"));
+            inputTable.apply(SqlTransform.query("select c1, c2, c3 from PCOLLECTION where c1 > 1"));
 
     // print the output record of case 1;
     outputStream.apply(
-        "log_result",
-        MapElements.via(
-            new SimpleFunction<Row, Void>() {
-              @Override
-              public Void apply(Row input) {
-                // expect output:
-                //  PCOLLECTION: [3, row, 3.0]
-                //  PCOLLECTION: [2, row, 2.0]
+            "log_result",
+            MapElements.via(
+                    new SimpleFunction<Row, Void>() {
+                      @Override
+                      public Void apply(Row input) {
+                        // expect output:
+                        //  PCOLLECTION: [3, row, 3.0]
+                        //  PCOLLECTION: [2, row, 2.0]
 
-                System.out.println("");
-                System.out.println("+----------------------------------------------------");
-                System.out.println("| PCOLLECTION: " + input.getValues());
-                System.out.println("+----------------------------------------------------");
+                        System.out.println("");
+                        System.out.println("+----------------------------------------------------");
+                        System.out.println("| PCOLLECTION: " + input.getValues());
+                        System.out.println("+----------------------------------------------------");
 
-                return null;
-              }
-            }));
+                        return null;
+                      }
+                    }));
 
     // Case 2. run the query with SqlTransform.query over result PCollection of case 1.
     PCollection<Row> outputStream2 =
-        PCollectionTuple.of(new TupleTag<>("CASE1_RESULT"), outputStream)
-            .apply(SqlTransform.query("select c2, sum(c3) from CASE1_RESULT group by c2"));
+            PCollectionTuple.of(new TupleTag<>("CASE1_RESULT"), outputStream)
+                    .apply(SqlTransform.query("select c2, sum(c3) from CASE1_RESULT group by c2"));
 
     // print the output record of case 2;
     outputStream2.apply(
-        "log_result",
-        MapElements.via(
-            new SimpleFunction<Row, Void>() {
-              @Override
-              public Void apply(Row input) {
-                // expect output:
-                //  CASE1_RESULT: [row, 5.0]
-                System.out.println("+-------------------------------");
-                System.out.println("CASE1_RESULT: " + input.getValues());
-                System.out.println("+-------------------------------");
-                return null;
-              }
-            }));
+            "log_result",
+            MapElements.via(
+                    new SimpleFunction<Row, Void>() {
+                      @Override
+                      public Void apply(Row input) {
+                        // expect output:
+                        //  CASE1_RESULT: [row, 5.0]
+                        System.out.println("+-------------------------------");
+                        System.out.println("CASE1_RESULT: " + input.getValues());
+                        System.out.println("+-------------------------------");
+                        return null;
+                      }
+                    }));
   }
 
-  static void runWordCount(String[] args) throws Exception {
-    PipelineOptions options =
-        PipelineOptionsFactory.fromArgs(args).withValidation().as(PipelineOptions.class);
-    Pipeline p = Pipeline.create(options);
 
-    applyWordCountLogic(p, options.getInputFile(), options.getOutput());
-
-    final PipelineResult result =  p.run();
-    if (args[0].equals("--runner=SparkRunner")) {
-      result.waitUntilFinish(); // Not yet supported by Nemo.
-    }
-  }
-
+  //  static void runWordCount(String[] args) throws Exception {
+  //    PipelineOptions options =
+  //            PipelineOptionsFactory.fromArgs(args).withValidation().as(PipelineOptions.class);
+  //    Pipeline p = Pipeline.create(options);
+  //
+  //    applyWordCountLogic(p, options.getInputFile(), options.getOutput());
+  //
+  //    final PipelineResult result =  p.run();
+  //    if (args[0].equals("--runner=SparkRunner")) {
+  //      result.waitUntilFinish(); // Not yet supported by Nemo.
+  //    }
+  //  }
+  //
   static void runSQL(String[] args) throws Exception {
     PipelineOptions options =
-        PipelineOptionsFactory.fromArgs(args).withValidation().as(PipelineOptions.class);
+            PipelineOptionsFactory.fromArgs(args).withValidation().as(PipelineOptions.class);
     Pipeline p = Pipeline.create(options);
     applySQLLogic(p);
     final PipelineResult result =  p.run();
@@ -260,26 +461,61 @@ public class Main {
     }
   }
 
+
+  static void runWorldCupCalc(String[] args) throws Exception {
+    //    PipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(PipelineOptions.class);
+
+    PipelineOptions options =
+            PipelineOptionsFactory.fromArgs(args).withValidation().as(PipelineOptions.class);
+    Pipeline p = Pipeline.create(options);
+
+    System.out.println("DEBUG > =================================================================== JIHO");
+
+    applyWorldCupCalcLogic(p, options.getInputFile_ranking(), options.getInputFile_players(), options.getOutput());
+
+    System.out.println("DEBUG > =================================================================== JIHO");
+
+    final PipelineResult result =  p.run();
+
+    // System.out.println("PIPELINE RESULT: " + result);
+
+    System.out.println("DEBUG > =================================================================== JIHO");
+
+    if (args[0].equals("--runner=SparkRunner")) {
+      result.waitUntilFinish(); // Not yet supported by Nemo.
+    }
+  }
+
+
   /**
    * Big Data and Deep Learning Systems Fall 2018
    * ================= Write your data processing logic here =================
    */
   public static void main(String[] args) throws Exception {
 
-    System.out.println("===================================================");
-    System.out.println("HW01 -  Beam on Spark / Nemo");
-    System.out.println("\tJiho Choi (jihochoi@snu.ac.kr)");
-    System.out.println("---------------------------------------------------");
-    System.out.println("\tSTART");
-    System.out.println("---------------------------------------------------");
+    System.out.println("+------------------------------------------------------");
+    System.out.println("| HW01 -  Beam on Spark / Nemo");
+    System.out.println("|    Jiho Choi (jihochoi@snu.ac.kr)");
+    System.out.println("|");
+    System.out.println("+------------------------------------------------------");
+    System.out.println("|    START");
+    System.out.println("+------------------------------------------------------");
     System.out.println("");
 
-    runWordCount(args);
-    runSQL(args);
+    System.out.println(args[0]); // spark
+    System.out.println(args[1]); // path_rank_data
+    System.out.println(args[2]); // path_player_data
+    System.out.println(args[3] + "\n"); // path_output_dir
 
-    System.out.println("---------------------------------------------------");
-    System.out.println("\tEND");
-    System.out.println("===================================================");
+    runWorldCupCalc(args);
+
+    // runWordCount(args);
+    // runSQL(args);
+
+    System.out.println("");
+    System.out.println("+------------------------------------------------------");
+    System.out.println("|    END");
+    System.out.println("+------------------------------------------------------");
 
   }
 }
