@@ -201,9 +201,6 @@ public class Main {
   }
   */
 
-
-
-
   static void applyWorldCupCalcLogic(final Pipeline pipeline,
                                      final String input_ranking,
                                      final String input_players,
@@ -226,7 +223,6 @@ public class Main {
     /*
     References
       https://beam.apache.org/documentation/dsls/sql/walkthrough/
-
     */
 
     /*
@@ -247,7 +243,14 @@ public class Main {
     } finally {
       System.out.println("##### Can Not Load Data #####");
     }
+
+    PCollection<Row> table = GenericSourceSink.read(pipeline, filePattern)
+            .apply("StringToRow", new TextTableProvider.CsvToRow(tableSchema.getValue(), csvFormat))
+            .setCoder(tableSchema.getValue().getRowCoder())
+            .setName(tableSchema.getKey());
     */
+
+    // Load CSV Refernce: https://github.com/apache/incubator-nemo/blob/78e182c98554e4cdea6e63b0a9fed4905e75e2f2/examples/beam/src/main/java/org/apache/nemo/examples/beam/tpch/TpchQueryRunner.java#L75-L78
 
     // rank,country_full,country_abrv,total_points,previous_points,rank_change,cur_year_avg,cur_year_avg_weighted,last_year_avg,last_year_avg_weighted,two_year_ago_avg,two_year_ago_weighted,three_year_ago_avg,three_year_ago_weighted,confederation,rank_date
     Schema RANKING_SCHEMA = Schema.builder()
@@ -263,21 +266,11 @@ public class Main {
     // Team,#,Pos.,FIFA Popular Name,Birth Date,Shirt Name,Club,Height,Weight
     Schema PLAYER_SCHEMA = Schema.builder()
             .addStringField("country") // 0
-            .addStringField("temp1")
-            .addStringField("temp2")
-            .addStringField("temp3")
-            .addStringField("temp4")
-            .addStringField("temp5")
-            .addStringField("temp6")
+            .addStringField("temp1").addStringField("temp2").addStringField("temp3")
+            .addStringField("temp4").addStringField("temp5").addStringField("temp6")
             .addStringField("height") // 7
             .addStringField("weight") // 8
             .build();
-
-
-    // final ImmutableMap<String, Schema> hSchemas = ImmutableMap.<String, Schema>builder()
-    //         .put("ranking", RANKING_SCHEMA)
-    //         .put("player", PLAYER_SCHEMA)
-    //         .build();
 
     final CSVFormat csvFormat = CSVFormat.MYSQL
             .withDelimiter(',')
@@ -301,34 +294,10 @@ public class Main {
     tables = tables.and(new TupleTag<>("player"), table_player);
 
 
-    // Load CSV Refernce: https://github.com/apache/incubator-nemo/blob/78e182c98554e4cdea6e63b0a9fed4905e75e2f2/examples/beam/src/main/java/org/apache/nemo/examples/beam/tpch/TpchQueryRunner.java#L75-L78
-
-    // PCollectionTuple tables = PCollectionTuple.empty(pipeline);
-
-    // PCollection<Row> table = GenericSourceSink.read(pipeline, filePattern)
-    //         .apply("StringToRow", new TextTableProvider.CsvToRow(tableSchema.getValue(), csvFormat))
-    //         .setCoder(tableSchema.getValue().getRowCoder())
-    //         .setName(tableSchema.getKey());
-
-    // PCollection<Row> rankingTable = pipeline.apply(TextIO.read().from(input_ranking))
-    //                 .apply("StringToRow", new TextTableProvider.CsvToRow(rankingSchema, csvFormat))
-    //                 .setCoder(rankingSchema.getRowCoder())
-    //                 .setName("ranking");
-    //                 // .setCoder(RowCoder.of(rankingSchema))
-
     PCollection<Row> outputStream =
-            // tables.apply(SqlTransform.query("select ranking.rank, country, date from PCOLLECTION where date = '2018-06-07'"));
-            // tables.apply(SqlTransform.query("select * from PCOLLECTION"));
-
-
             // tables.apply(SqlTransform.query("select * from ranking"));
-            tables.apply(SqlTransform.query("select * from player"));
+            tables.apply(SqlTransform.query("select country, height, weight from player"));
 
-
-            // rankingTable.apply(SqlTransform.query("select * from PCOLLECTION where date = '2018-06-07'"));
-
-            // rankingTable.apply(SqlTransform.query("select ranking.rank, ranking.country, ranking.date from PCOLLECTION"));
-            // rankingTable.apply(SqlTransform.query("select rank, country, date from PCOLLECTION where date = '2018-06-07'"));
 
     outputStream.apply(
             "log_result",

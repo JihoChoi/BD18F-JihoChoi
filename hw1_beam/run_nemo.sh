@@ -36,5 +36,5 @@ org.apache.nemo.client.JobLauncher \
   -executor_json `pwd`/nemo-resources.json \
   -optimization_policy org.apache.nemo.compiler.optimizer.policy.DefaultPolicy \
   -user_main edu.snu.bd.hw1.Main \
-  -user_args "--runner=org.apache.nemo.compiler.frontend.beam.NemoPipelineRunner --inputFile_ranking=`pwd`/data/fifa_ranking.csv --inputFile_players=`pwd`/data/wc2018_players.csv --output=`pwd`/nemo_output/output"
+  -user_args "--runner=org.apache.nemo.compiler.frontend.beam.NemoPipelineRunner --inputFile_ranking=`pwd`/data/ranking.csv --inputFile_players=`pwd`/data/players.csv --output=`pwd`/nemo_output/output"
 
