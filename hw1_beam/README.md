@@ -1,3 +1,50 @@
+## [HW1] Beam on Spark / Nemo
+
+### Description
+Simple BeamSQL batch processing application for distributed query processing using Beam / Spark / Apache Nemo
+
+### Requirements
+- JRE 1.8
+- Maven
+    - ND4J, DL4J
+
+### Usage
+```
+> ./download_datasets.sh
+> ./run_spark
+> ./run_nemo
+```
+
+### Datasets
+* `fifa-ranking.csv`
+  * FIFA Rankings by Rank Dates (1993-2018)
+  * [Kaggle FIFA Ranking](https://www.kaggle.com/tadhgfitzgerald/fifa-international-soccer-mens-ranking-1993now)
+* `wc2018-players.csv`
+  * 2018 FIFA World Cup Players (32 countries * 23-man)
+  * [Kaggle FIFA WORLD CUP 2018 Players](https://www.kaggle.com/djamshed/fifa-world-cup-2018-players)
+
+#### Querying without parallel processing
+> . simple queries  
+> SELECT rank_num, country FROM RANKING WHEN rank_date = '2018-06-07'  
+> SELECT rank_num, RANKING.COUNTRY, PLAYER.height, PLAYER.weight FROM PLAYER GROUP BY country"  
+> SELECT rank_num, RANKING.COUNTRY, PLAYER.height, PLAYER.weight, BMI(PLAYER.height, PLAYER.weight) FROM RANKING INNER JOIN PLAYER ON RANKING.country = PLAYER.country  
+
+#### Data flow with distributed systems
+> . requires a lot more  
+> PIPELINE_OPTION  
+> PIPELINE  
+> PCOLLECTION  
+> PTRANSFORMATION  
+
+
+.
+---
+.
+---
+Original Handout
+---
+
+
 # [HW1] Beam on Spark/Nemo
 
 **Due Oct. 31 (Wed), 6pm**
@@ -56,7 +103,7 @@
 
 ## HW upload guide
 * Upload to your private Github repository
-  * https://github.com/YOUR_GITHUB_ID/bd17f-YOUR_NAME (e.g., https://github.com/johnyangk/bd17f-YoungSeok)
+  * https://github.com/YOUR_GITHUB_ID/bd18f-YOUR_NAME (e.g., https://github.com/johnyangk/bd17f-YoungSeok)
   * The code
   * Report in PDF format
 * Do not upload the datasets! (they may be big, so we'll instead use the scripts to download them)
