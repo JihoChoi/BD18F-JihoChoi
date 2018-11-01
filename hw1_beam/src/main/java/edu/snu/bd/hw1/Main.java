@@ -206,8 +206,6 @@ public class Main {
                                      final String input_players,
                                      final String output) {
 
-    // TODOs
-
     System.out.println("DEBUG > apply > begin ================================================================= JIHO");
     System.out.println("1) " + input_ranking + "\n2) " + input_players);
 
@@ -216,7 +214,6 @@ public class Main {
     //         .apply(new CountWords())
     //         .apply(MapElements.via(new FormatAsTextFn()))
     //         .apply("WriteCounts", TextIO.write().to(output));
-
 
     // Load only the required fields from .csv files and create PCollection<Row>
 
@@ -250,11 +247,12 @@ public class Main {
             .setName(tableSchema.getKey());
     */
 
-    // Load CSV Refernce: https://github.com/apache/incubator-nemo/blob/78e182c98554e4cdea6e63b0a9fed4905e75e2f2/examples/beam/src/main/java/org/apache/nemo/examples/beam/tpch/TpchQueryRunner.java#L75-L78
+    // Load CSV
+    //    Refernce: https://github.com/apache/incubator-nemo/blob/78e182c98554e4cdea6e63b0a9fed4905e75e2f2/examples/beam/src/main/java/org/apache/nemo/examples/beam/tpch/TpchQueryRunner.java#L75-L78
 
     // rank,country_full,country_abrv,total_points,previous_points,rank_change,cur_year_avg,cur_year_avg_weighted,last_year_avg,last_year_avg_weighted,two_year_ago_avg,two_year_ago_weighted,three_year_ago_avg,three_year_ago_weighted,confederation,rank_date
     Schema RANKING_SCHEMA = Schema.builder()
-            .addInt32Field("rank")     // 0
+            .addInt32Field("rank_num")     // 0
             .addStringField("country") // 1
             .addStringField("temp2").addStringField("temp3").addStringField("temp4")
             .addStringField("temp5").addStringField("temp6").addStringField("temp7")
@@ -268,8 +266,14 @@ public class Main {
             .addStringField("country") // 0
             .addStringField("temp1").addStringField("temp2").addStringField("temp3")
             .addStringField("temp4").addStringField("temp5").addStringField("temp6")
-            .addStringField("height") // 7
-            .addStringField("weight") // 8
+            .addDoubleField("height") // 7
+            .addDoubleField("weight") // 8
+            .build();
+
+    Schema PLAYER_SCHEMA_2 = Schema.builder()
+            .addStringField("country")
+            .addDoubleField("height")
+            .addDoubleField("weight")
             .build();
 
     final CSVFormat csvFormat = CSVFormat.MYSQL
@@ -293,11 +297,28 @@ public class Main {
 
     tables = tables.and(new TupleTag<>("player"), table_player);
 
+    // Query 1 Ranking
+    PCollection<Row> outputStream_ranking = tables.apply(
+            SqlTransform.query("select rank_num, country from ranking where rank_date = '2018-06-07'"));
 
-    PCollection<Row> outputStream =
-            // tables.apply(SqlTransform.query("select * from ranking"));
-            tables.apply(SqlTransform.query("select country, height, weight from player"));
+    // Query 2 Player
+    PCollection<Row> outputStream_player = tables
+            .apply(SqlTransform.query("select country, avg(height), avg(weight) from player group by country"))
+            .setCoder(PLAYER_SCHEMA_2.getRowCoder());
 
+    // Join Query
+    PCollectionTuple tables_results = PCollectionTuple.empty(pipeline);
+    tables_results = tables_results.and(new TupleTag<>("ranking"), outputStream_ranking);
+    tables_results = tables_results.and(new TupleTag<>("player"), outputStream_player);
+
+    PCollection<Row> outputStream = tables_results.apply(
+            SqlTransform.query("select rank_num, ranking.country, height, player.weight " +
+                    "from ranking " +
+                    "inner join player " +
+                    "on ranking.country = player.country"));
+
+    // outputStream_player.apply(
+    // outputStream_ranking.apply(
 
     outputStream.apply(
             "log_result",
@@ -312,18 +333,9 @@ public class Main {
                       }
                     }));
 
-
-    // PCollection<Row> rankingTable =
-    //         PBegin.in(pipeline)
-    //                 .apply(Create
-    //                         .of(rows)
-    //                         .withCoder(RowCoder.of(rankingSchema)));
+    // new TupleTag<>("ranking"), table_ranking
 
 
-    // final PCollection<Row> table_player = GenericSourceSink
-
-    // PCollection<Row> inputTableRanking = p.apply(TextIO.read().from("/my/input/pathb")).apply(...);
-    // PCollection<Row> inputTablePlayers = p.apply(TextIO.read().from("/my/input/patha")).apply(...);
 
     System.out.println("DEBUG > apply > end =================================================================== JIHO");
   }
