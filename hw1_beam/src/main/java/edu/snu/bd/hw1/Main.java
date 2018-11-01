@@ -271,9 +271,7 @@ public class Main {
             .build();
 
     Schema PLAYER_SCHEMA_2 = Schema.builder()
-            .addStringField("country")
-            .addDoubleField("height")
-            .addDoubleField("weight")
+            .addStringField("country").addDoubleField("height").addDoubleField("weight")
             .build();
 
     final CSVFormat csvFormat = CSVFormat.MYSQL
@@ -306,7 +304,7 @@ public class Main {
             .apply(SqlTransform.query("select country, avg(height), avg(weight) from player group by country"))
             .setCoder(PLAYER_SCHEMA_2.getRowCoder());
 
-    // Join Query
+    // Query 3 Join Ranking * Player
     PCollectionTuple tables_results = PCollectionTuple.empty(pipeline);
     tables_results = tables_results.and(new TupleTag<>("ranking"), outputStream_ranking);
     tables_results = tables_results.and(new TupleTag<>("player"), outputStream_player);
@@ -320,6 +318,9 @@ public class Main {
     // outputStream_player.apply(
     // outputStream_ranking.apply(
 
+    // Print System.out
+
+    /*
     outputStream.apply(
             "log_result",
             MapElements.via(
@@ -332,10 +333,23 @@ public class Main {
                         return null;
                       }
                     }));
+    */
 
-    // new TupleTag<>("ranking"), table_ranking
-
-
+    // File Write
+    outputStream.apply(
+            "log_result",
+            MapElements.via(
+                    new SimpleFunction<Row, String>() {
+                      @Override
+                      public String apply(Row input) {
+                        // return input.getValues().toArray()[0].toString();
+                        return input.getValues().toArray()[0].toString()
+                                + ", " + input.getValues().toArray()[1].toString()
+                                + ", " + input.getValues().toArray()[2].toString()
+                                + ", " + input.getValues().toArray()[3].toString();
+              }
+            }))
+            .apply(TextIO.write().to(output));
 
     System.out.println("DEBUG > apply > end =================================================================== JIHO");
   }
