@@ -46,6 +46,7 @@ import org.apache.beam.sdk.coders.*;
 import org.apache.beam.sdk.schemas.*;
 import org.apache.beam.sdk.values.*;
 
+import edu.snu.bd.hw1.*;
 
 /**
  * An example that counts words in Shakespeare and includes Beam best practices.
@@ -312,10 +313,12 @@ public class Main {
     PCollection<Row> outputStream = tables_results.apply(
             SqlTransform.query("select rank_num, ranking.country, " +
                     "player.height_min, player.height_avg, player.height_max, " +
-                    "player.weight_min, player.weight_avg, player.weight_max " +
+                    "player.weight_min, player.weight_avg, player.weight_max, " +
+                    "bmi(player.height_avg, player.weight_avg) " +
+                    // "bmi(player.height_avg) " +
                     "from ranking " +
-                    "inner join player " +
-                    "on ranking.country = player.country"));
+                    "inner join player on ranking.country = player.country")
+                    .registerUdf("bmi", BMI.class));
 
     // Print System.out
 
@@ -348,7 +351,8 @@ public class Main {
                                 + ", " + input.getValues().toArray()[4].toString()
                                 + ", " + input.getValues().toArray()[5].toString()
                                 + ", " + input.getValues().toArray()[6].toString()
-                                + ", " + input.getValues().toArray()[7].toString();
+                                + ", " + input.getValues().toArray()[7].toString()
+                                + ", " + input.getValues().toArray()[8].toString();
               }
             }))
             .apply(TextIO.write().to(output));
