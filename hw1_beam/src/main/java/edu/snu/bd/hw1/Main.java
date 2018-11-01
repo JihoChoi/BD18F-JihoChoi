@@ -209,21 +209,11 @@ public class Main {
     System.out.println("DEBUG > apply > begin ================================================================= JIHO");
     System.out.println("1) " + input_ranking + "\n2) " + input_players);
 
-    // CountWords
-    // pipeline.apply("ReadLines", TextIO.read().from(input_ranking))
-    //         .apply(new CountWords())
-    //         .apply(MapElements.via(new FormatAsTextFn()))
-    //         .apply("WriteCounts", TextIO.write().to(output));
-
-    // Load only the required fields from .csv files and create PCollection<Row>
+    /* References
+      https://beam.apache.org/documentation/dsls/sql/walkthrough/ */
 
     /*
-    References
-      https://beam.apache.org/documentation/dsls/sql/walkthrough/
-    */
-
-    /*
-    // Undistributed in-memory load
+    // Undistributed in-memory load (First Approach)
 
     List<Row> rows = new ArrayList<Row>();
     String line = "";
@@ -271,7 +261,13 @@ public class Main {
             .build();
 
     Schema PLAYER_SCHEMA_2 = Schema.builder()
-            .addStringField("country").addDoubleField("height").addDoubleField("weight")
+            .addStringField("country")
+            .addDoubleField("height_min")
+            .addDoubleField("height_avg")
+            .addDoubleField("height_max")
+            .addDoubleField("weight_min")
+            .addDoubleField("weight_avg")
+            .addDoubleField("weight_max")
             .build();
 
     final CSVFormat csvFormat = CSVFormat.MYSQL
@@ -301,7 +297,11 @@ public class Main {
 
     // Query 2 Player
     PCollection<Row> outputStream_player = tables
-            .apply(SqlTransform.query("select country, avg(height), avg(weight) from player group by country"))
+            .apply(
+                    SqlTransform.query("select country, " +
+                                    "min(height), avg(height), max(height), " +
+                                    "min(weight), avg(weight), max(weight) " +
+                                    "from player group by country"))
             .setCoder(PLAYER_SCHEMA_2.getRowCoder());
 
     // Query 3 Join Ranking * Player
@@ -310,17 +310,16 @@ public class Main {
     tables_results = tables_results.and(new TupleTag<>("player"), outputStream_player);
 
     PCollection<Row> outputStream = tables_results.apply(
-            SqlTransform.query("select rank_num, ranking.country, height, player.weight " +
+            SqlTransform.query("select rank_num, ranking.country, " +
+                    "player.height_min, player.height_avg, player.height_max, " +
+                    "player.weight_min, player.weight_avg, player.weight_max " +
                     "from ranking " +
                     "inner join player " +
                     "on ranking.country = player.country"));
 
-    // outputStream_player.apply(
-    // outputStream_ranking.apply(
-
     // Print System.out
 
-    /*
+    // outputStream_player + outputStream_ranking => outputStream
     outputStream.apply(
             "log_result",
             MapElements.via(
@@ -333,7 +332,6 @@ public class Main {
                         return null;
                       }
                     }));
-    */
 
     // File Write
     outputStream.apply(
@@ -346,7 +344,11 @@ public class Main {
                         return input.getValues().toArray()[0].toString()
                                 + ", " + input.getValues().toArray()[1].toString()
                                 + ", " + input.getValues().toArray()[2].toString()
-                                + ", " + input.getValues().toArray()[3].toString();
+                                + ", " + input.getValues().toArray()[3].toString()
+                                + ", " + input.getValues().toArray()[4].toString()
+                                + ", " + input.getValues().toArray()[5].toString()
+                                + ", " + input.getValues().toArray()[6].toString()
+                                + ", " + input.getValues().toArray()[7].toString();
               }
             }))
             .apply(TextIO.write().to(output));
